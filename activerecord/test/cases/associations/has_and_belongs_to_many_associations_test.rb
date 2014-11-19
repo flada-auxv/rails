@@ -70,14 +70,6 @@ class DeveloperWithSymbolsForKeys < ActiveRecord::Base
     :foreign_key => "developer_id"
 end
 
-class SubDeveloper < Developer
-  self.table_name = 'developers'
-  has_and_belongs_to_many :special_projects,
-    :join_table => 'developers_projects',
-    :foreign_key => "project_id",
-    :association_foreign_key => "developer_id"
-end
-
 class HasAndBelongsToManyAssociationsTest < ActiveRecord::TestCase
   fixtures :accounts, :companies, :categories, :posts, :categories_posts, :developers, :projects, :developers_projects,
            :parrots, :pirates, :parrots_pirates, :treasures, :price_estimates, :tags, :taggings
@@ -822,7 +814,7 @@ class HasAndBelongsToManyAssociationsTest < ActiveRecord::TestCase
     assert_equal [], Pirate.where(id: redbeard.id)
   end
 
-  def test_has_and_belongs_to_many_associations_on_new_records_use_null_relations
+  test "has and belongs to many associations on new records use null relations" do
     projects = Developer.new.projects
     assert_no_queries do
       assert_equal [], projects
@@ -867,20 +859,5 @@ class HasAndBelongsToManyAssociationsTest < ActiveRecord::TestCase
     magazine.save
 
     assert_includes magazine.articles, article
-  end
-
-  def test_has_and_belongs_to_many_in_a_namespaced_model_pointing_to_a_non_namespaced_model
-    article = Publisher::Article.create
-    tag = Tag.create
-    article.tags << tag
-    article.save
-
-    assert_includes article.tags, tag
-  end
-
-  def test_redefine_habtm
-    child = SubDeveloper.new("name" => "Aredridel")
-    child.special_projects << SpecialProject.new("name" => "Special Project")
-    assert_equal true, child.save
   end
 end
