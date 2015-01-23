@@ -101,7 +101,7 @@ If you don't have Ruby installed have a look at
 install Ruby on your platform.
 
 Many popular UNIX-like OSes ship with an acceptable version of SQLite3. Windows
-users and others can find installation instructions at [the SQLite3 website](https://www.sqlite.org).
+users and others can find installation instructions at the [SQLite3 website](https://www.sqlite.org).
 Verify that it is correctly installed and in your PATH:
 
 ```bash
@@ -165,7 +165,7 @@ of the files and folders that Rails created by default:
 |config/|Configure your application's routes, database, and more. This is covered in more detail in [Configuring Rails Applications](configuring.html).|
 |config.ru|Rack configuration for Rack based servers used to start the application.|
 |db/|Contains your current database schema, as well as the database migrations.|
-|Gemfile<br>Gemfile.lock|These files allow you to specify what gem dependencies are needed for your Rails application. These files are used by the Bundler gem. For more information about Bundler, see [the Bundler website](http://bundler.io).|
+|Gemfile<br>Gemfile.lock|These files allow you to specify what gem dependencies are needed for your Rails application. These files are used by the Bundler gem. For more information about Bundler, see the [Bundler website](http://bundler.io).|
 |lib/|Extended modules for your application.|
 |log/|Application log files.|
 |public/|The only folder seen by the world as-is. Contains static files and compiled assets.|
@@ -675,7 +675,7 @@ class CreateArticles < ActiveRecord::Migration
       t.string :title
       t.text :text
 
-      t.timestamps
+      t.timestamps null: false
     end
   end
 end
@@ -833,7 +833,7 @@ class ArticlesController < ApplicationController
 
 A couple of things to note. We use `Article.find` to find the article we're
 interested in, passing in `params[:id]` to get the `:id` parameter from the
-request. We also use an instance variable (prefixed by `@`) to hold a
+request. We also use an instance variable (prefixed with `@`) to hold a
 reference to the article object. We do this because Rails will pass all instance
 variables to the view.
 
@@ -1279,7 +1279,7 @@ And here's how our app looks so far:
 Our `edit` page looks very similar to the `new` page; in fact, they
 both share the same code for displaying the form. Let's remove this
 duplication by using a view partial. By convention, partial files are
-prefixed by an underscore.
+prefixed with an underscore.
 
 TIP: You can read more about partials in the
 [Layouts and Rendering in Rails](layouts_and_rendering.html) guide.
@@ -1537,7 +1537,7 @@ class CreateComments < ActiveRecord::Migration
       # this line adds an integer column called `article_id`.
       t.references :article, index: true
 
-      t.timestamps
+      t.timestamps null: false
     end
   end
 end

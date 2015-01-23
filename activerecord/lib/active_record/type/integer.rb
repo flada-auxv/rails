@@ -5,7 +5,7 @@ module ActiveRecord
 
       def initialize(*)
         super
-        @range = -max_value...max_value
+        @range = min_value...max_value
       end
 
       def type
@@ -13,6 +13,11 @@ module ActiveRecord
       end
 
       alias type_cast_for_database type_cast
+
+      def type_cast_from_database(value)
+        return if value.nil?
+        value.to_i
+      end
 
       protected
 
@@ -33,13 +38,17 @@ module ActiveRecord
 
       def ensure_in_range(value)
         unless range.cover?(value)
-          raise RangeError, "#{value} is too large for #{self.class} with limit #{limit || 4}"
+          raise RangeError, "#{value} is out of range for #{self.class} with limit #{limit || 4}"
         end
       end
 
       def max_value
         limit = self.limit || 4
         1 << (limit * 8 - 1) # 8 bits per byte with one bit for sign
+      end
+
+      def min_value
+        -max_value
       end
     end
   end

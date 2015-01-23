@@ -54,6 +54,20 @@ module AbstractController
         )
       end
 
+      def test_nil_anchor
+        assert_equal(
+          '/c/a',
+          W.new.url_for(only_path: true, controller: 'c', action: 'a', anchor: nil)
+        )
+      end
+
+      def test_false_anchor
+        assert_equal(
+          '/c/a',
+          W.new.url_for(only_path: true, controller: 'c', action: 'a', anchor: false)
+        )
+      end
+
       def test_anchor_should_call_to_param
         assert_equal('/c/a#anchor',
           W.new.url_for(:only_path => true, :controller => 'c', :action => 'a', :anchor => Struct.new(:to_param).new('anchor'))
@@ -274,6 +288,13 @@ module AbstractController
           assert_equal 'http://www.basecamphq.com/subdir/home/sweet/home/again',
             controller.send(:home_url, :host => 'www.basecamphq.com', :user => 'again', :script_name => "/subdir")
         end
+      end
+
+      def test_using_nil_script_name_properly_concats_with_original_script_name
+        add_host!
+        assert_equal('https://www.basecamphq.com/subdir/c/a/i',
+          W.new.url_for(:controller => 'c', :action => 'a', :id => 'i', :protocol => 'https', :script_name => nil, :original_script_name => '/subdir')
+        )
       end
 
       def test_only_path

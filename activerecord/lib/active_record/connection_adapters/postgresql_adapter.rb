@@ -125,7 +125,7 @@ module ActiveRecord
         PostgreSQL::SchemaCreation.new self
       end
 
-      # Adds `:array` option to the default set provided by the
+      # Adds +:array+ option to the default set provided by the
       # AbstractAdapter
       def prepare_column_options(column, types) # :nodoc:
         spec = super
@@ -134,7 +134,7 @@ module ActiveRecord
         spec
       end
 
-      # Adds `:array` as a valid migration key
+      # Adds +:array+ as a valid migration key
       def migration_keys
         super + [:array]
       end
@@ -431,22 +431,16 @@ module ActiveRecord
       private
 
         def get_oid_type(oid, fmod, column_name, sql_type = '') # :nodoc:
-
-          result = type_map.fetch(oid, fmod, sql_type) {
-            nil
-          }
-
-          unless result
+          if !type_map.key?(oid)
             load_additional_types(type_map, [oid])
-            result = type_map.fetch(oid, fmod, sql_type) {
-              warn "unknown OID #{oid}: failed to recognize type of '#{column_name}'. It will be treated as String."
-              Type::Value.new.tap do |cast_type|
-                type_map.register_type(oid, cast_type)
-              end
-            }
           end
 
-          result
+          type_map.fetch(oid, fmod, sql_type) {
+            warn "unknown OID #{oid}: failed to recognize type of '#{column_name}'. It will be treated as String."
+            Type::Value.new.tap do |cast_type|
+              type_map.register_type(oid, cast_type)
+            end
+          }
         end
 
         def initialize_type_map(m) # :nodoc:
@@ -522,9 +516,12 @@ module ActiveRecord
 
         def extract_limit(sql_type) # :nodoc:
           case sql_type
-          when /^bigint/i;    8
-          when /^smallint/i;  2
-          else super
+          when /^bigint/i, /^int8/i
+            8
+          when /^smallint/i
+            2
+          else
+            super
           end
         end
 
@@ -538,7 +535,7 @@ module ActiveRecord
             when 'true', 'false'
               default
             # Numeric types
-            when /\A\(?(-?\d+(\.\d*)?\)?(::bigint)?)\z/
+            when /\A\(?(-?\d+(\.\d*)?)\)?(::bigint)?\z/
               $1
             # Object identifier types
             when /\A-?\d+\z/

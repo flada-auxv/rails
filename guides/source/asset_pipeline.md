@@ -167,9 +167,8 @@ directory. Files in this directory are served by the Sprockets middleware.
 
 Assets can still be placed in the `public` hierarchy. Any assets under `public`
 will be served as static files by the application or web server when
-`config.serve_static_assets` is set to true. You should use
-`app/assets` for files that must undergo some pre-processing before they are
-served.
+`config.serve_static_files` is set to true. You should use `app/assets` for
+files that must undergo some pre-processing before they are served.
 
 In production, Rails precompiles these files to `public/assets` by default. The
 precompiled copies are then served as static assets by the web server. The files
@@ -231,7 +230,9 @@ images, JavaScript files or stylesheets.
 scope of the application or those libraries which are shared across applications.
 
 * `vendor/assets` is for assets that are owned by outside entities, such as
-code for JavaScript plugins and CSS frameworks.
+code for JavaScript plugins and CSS frameworks. Keep in mind that third party
+code with references to other files also processed by the asset Pipeline (images,
+stylesheets, etc.), will need to be rewritten to use helpers like `asset_path`.
 
 WARNING: If you are upgrading from Rails 3, please take into account that assets
 under `lib/assets` or `vendor/assets` are available for inclusion via the

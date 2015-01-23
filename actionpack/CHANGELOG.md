@@ -1,3 +1,24 @@
+*   Add `ActionController::Parameters#to_unsafe_h` to return an unfiltered
+    `Hash` representation of Parameters object. This is now a preferred way to
+    retrieve unfiltered parameters as we will stop inheriting `AC::Parameters`
+    object in Rails 5.0.
+
+    *Prem Sichanugrist*
+
+*   Restore handling of a bare `Authorization` header, without `token=`
+    prefix.
+
+    Fixes #17108.
+
+    *Guo Xiang Tan*
+
+*   Deprecate use of string keys in URL helpers.
+
+    Use symbols instead.
+    Fixes #16958.
+
+    *Byron Bischoff*, *Melanie Gilman*
+
 *   Deprecate the `only_path` option on `*_path` helpers.
 
     In cases where this option is set to `true`, the option is redundant and can
@@ -261,7 +282,10 @@
     *Dan Langevin*
 
 *   Build full URI as string when processing path in integration tests for
-    performance reasons.
+    performance reasons. One consequence of this is that the leading slash
+    is now required in integration test `process` helpers, whereas previously
+    it could be omitted. The fact that this worked was a unintended consequence
+    of the implementation and was never an intentional feature.
 
     *Guo Xiang Tan*
 

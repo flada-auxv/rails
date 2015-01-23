@@ -7,6 +7,7 @@ require 'models/contract'
 require 'models/topic'
 require 'models/reply'
 require 'models/category'
+require 'models/image'
 require 'models/post'
 require 'models/author'
 require 'models/essay'
@@ -589,17 +590,21 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
   end
 
   def test_create_with_bang_on_has_many_when_parent_is_new_raises
-    assert_raise(ActiveRecord::RecordNotSaved) do
+    error = assert_raise(ActiveRecord::RecordNotSaved) do
       firm = Firm.new
       firm.plain_clients.create! :name=>"Whoever"
     end
+
+    assert_equal "You cannot call create unless the parent is saved", error.message
   end
 
   def test_regular_create_on_has_many_when_parent_is_new_raises
-    assert_raise(ActiveRecord::RecordNotSaved) do
+    error = assert_raise(ActiveRecord::RecordNotSaved) do
       firm = Firm.new
       firm.plain_clients.create :name=>"Whoever"
     end
+
+    assert_equal "You cannot call create unless the parent is saved", error.message
   end
 
   def test_create_with_bang_on_has_many_raises_when_record_not_saved
@@ -610,9 +615,11 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
   end
 
   def test_create_with_bang_on_habtm_when_parent_is_new_raises
-    assert_raise(ActiveRecord::RecordNotSaved) do
+    error = assert_raise(ActiveRecord::RecordNotSaved) do
       Developer.new("name" => "Aredridel").projects.create!
     end
+
+    assert_equal "You cannot call create unless the parent is saved", error.message
   end
 
   def test_adding_a_mismatch_class
@@ -1353,10 +1360,13 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
 
     assert !account.valid?
     assert !orig_accounts.empty?
-    assert_raise ActiveRecord::RecordNotSaved do
+    error = assert_raise ActiveRecord::RecordNotSaved do
       firm.accounts = [account]
     end
+
     assert_equal orig_accounts, firm.accounts
+    assert_equal "Failed to replace accounts because one or more of the " \
+                 "new records could not be saved.", error.message
   end
 
   def test_replace_with_same_content
@@ -1774,6 +1784,15 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
     assert_equal [tagging], post.taggings
   end
 
+  def test_with_polymorphic_has_many_with_custom_columns_name
+    post = Post.create! :title => 'foo', :body => 'bar'
+    image = Image.create!
+
+    post.images << image
+
+    assert_equal [image], post.images
+  end
+
   def test_build_with_polymorphic_has_many_does_not_allow_to_override_type_and_id
     welcome = posts(:welcome)
     tagging = welcome.taggings.build(:taggable_id => 99, :taggable_type => 'ShouldNotChange')
@@ -1996,5 +2015,69 @@ class HasManyAssociationsTest < ActiveRecord::TestCase
 
     assert_equal 1, car.bulbs.count
     assert_equal 1, car.tyres.count
+  end
+
+  test 'associations replace in memory when records have the same id' do
+    bulb = Bulb.create!
+    car = Car.create!(bulbs: [bulb])
+
+    new_bulb = Bulb.find(bulb.id)
+    new_bulb.name = "foo"
+    car.bulbs = [new_bulb]
+
+    assert_equal "foo", car.bulbs.first.name
+  end
+
+  test 'in memory replacement executes no queries' do
+    bulb = Bulb.create!
+    car = Car.create!(bulbs: [bulb])
+
+    new_bulb = Bulb.find(bulb.id)
+
+    assert_no_queries do
+      car.bulbs = [new_bulb]
+    end
+  end
+
+  test 'in memory replacements do not execute callbacks' do
+    raise_after_add = false
+    klass = Class.new(ActiveRecord::Base) do
+      self.table_name = :cars
+      has_many :bulbs, after_add: proc { raise if raise_after_add }
+
+      def self.name
+        "Car"
+      end
+    end
+    bulb = Bulb.create!
+    car = klass.create!(bulbs: [bulb])
+
+    new_bulb = Bulb.find(bulb.id)
+    raise_after_add = true
+
+    assert_nothing_raised do
+      car.bulbs = [new_bulb]
+    end
+  end
+
+  test 'in memory replacements sets inverse instance' do
+    bulb = Bulb.create!
+    car = Car.create!(bulbs: [bulb])
+
+    new_bulb = Bulb.find(bulb.id)
+    car.bulbs = [new_bulb]
+
+    assert_same car, new_bulb.car
+  end
+
+  test 'in memory replacement maintains order' do
+    first_bulb = Bulb.create!
+    second_bulb = Bulb.create!
+    car = Car.create!(bulbs: [first_bulb, second_bulb])
+
+    same_bulb = Bulb.find(first_bulb.id)
+    car.bulbs = [second_bulb, same_bulb]
+
+    assert_equal [first_bulb, second_bulb], car.bulbs
   end
 end

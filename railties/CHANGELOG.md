@@ -1,3 +1,28 @@
+*   Deprecate `config.serve_static_assets` in favor of `config.serve_static_files`
+    to clarify that the option is unrelated to the asset pipeline.
+
+    *Godfrey Chan*
+
+*   `config.serve_static_files` can now be set from an environment variable in
+    production mode. The feature remains off by default, but can be enabled by
+    setting `RAILS_SERVE_STATIC_FILES` to a non-empty string at boot time.
+
+    *Richard Schneeman*, *Godfrey Chan*
+
+*   Generated migrations add the appropriate foreign key constraints to
+    references.
+
+    *Derek Prior*
+
+*   Deprecate different default for `log_level` in production.
+
+    *Godfrey Chan*, *Matthew Draper*
+
+*   Generated `.gitignore` excludes the whole `log/` directory, not only
+    `*.log` files.
+
+    *ShunsukeAida*
+
 *   `Rails::Paths::Path.unshift` now has the same interface as `Array.unshift`.
 
     *Igor Kapkov*

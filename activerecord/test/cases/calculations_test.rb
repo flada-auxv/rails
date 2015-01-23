@@ -10,6 +10,7 @@ require 'models/reply'
 require 'models/minivan'
 require 'models/speedometer'
 require 'models/ship_part'
+require 'models/treasure'
 
 class NumericData < ActiveRecord::Base
   self.table_name = 'numeric_data'
@@ -608,5 +609,19 @@ class CalculationsTest < ActiveRecord::TestCase
     actual = Topic.joins(:replies)
       .pluck('topics.title', 'replies_topics.title')
     assert_equal expected, actual
+  end
+
+  def test_calculation_with_polymorphic_relation
+    part = ShipPart.create!(name: "has trinket")
+    part.trinkets.create!
+
+    assert_equal part.id, ShipPart.joins(:trinkets).sum(:id)
+  end
+
+  def test_grouped_calculation_with_polymorphic_relation
+    part = ShipPart.create!(name: "has trinket")
+    part.trinkets.create!
+
+    assert_equal({ "has trinket" => part.id }, ShipPart.joins(:trinkets).group("ship_parts.name").sum(:id))
   end
 end

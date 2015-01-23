@@ -180,8 +180,12 @@ module Rails
           super
         end
 
-        def self.github(name, github, comment = nil)
-          new(name, nil, comment, github: github)
+        def self.github(name, github, branch = nil, comment = nil)
+          if branch
+            new(name, nil, comment, github: github, branch: branch)
+          else
+            new(name, nil, comment, github: github)
+          end
         end
 
         def self.version(name, version, comment = nil)
@@ -195,11 +199,9 @@ module Rails
 
       def rails_gemfile_entry
         if options.dev?
-          [GemfileEntry.path('rails', Rails::Generators::RAILS_DEV_PATH),
-           GemfileEntry.github('rails-dom-testing', 'rails/rails-dom-testing')]
+          [GemfileEntry.path('rails', Rails::Generators::RAILS_DEV_PATH)]
         elsif options.edge?
-          [GemfileEntry.github('rails', 'rails/rails'),
-           GemfileEntry.github('rails-dom-testing', 'rails/rails-dom-testing')]
+          [GemfileEntry.github('rails', 'rails/rails', '4-2-stable')]
         else
           [GemfileEntry.version('rails',
                             Rails::VERSION::STRING,
@@ -238,16 +240,8 @@ module Rails
         return [] if options[:skip_sprockets]
 
         gems = []
-        if options.dev? || options.edge?
-          gems << GemfileEntry.github('sprockets-rails', 'rails/sprockets-rails',
-                                    'Use edge version of sprockets-rails')
-          gems << GemfileEntry.github('sass-rails', 'rails/sass-rails',
-                                    'Use SCSS for stylesheets')
-        else
-          gems << GemfileEntry.version('sass-rails',
-                                     '~> 5.0.0.beta1',
+        gems << GemfileEntry.version('sass-rails', '~> 5.0',
                                      'Use SCSS for stylesheets')
-        end
 
         gems << GemfileEntry.version('uglifier',
                                    '>= 1.3.0',
@@ -268,11 +262,7 @@ module Rails
 
       def coffee_gemfile_entry
         comment = 'Use CoffeeScript for .coffee assets and views'
-        if options.dev? || options.edge?
-          GemfileEntry.github 'coffee-rails', 'rails/coffee-rails', comment
-        else
-          GemfileEntry.version 'coffee-rails', '~> 4.1.0', comment
-        end
+        GemfileEntry.version 'coffee-rails', '~> 4.1.0', comment
       end
 
       def javascript_gemfile_entry
@@ -280,14 +270,8 @@ module Rails
           []
         else
           gems = [coffee_gemfile_entry, javascript_runtime_gemfile_entry]
-
-          if options[:javascript] == 'jquery'
-            gems << GemfileEntry.version('jquery-rails', '~> 4.0.0.beta2',
-                                         'Use jQuery as the JavaScript library')
-          else
-            gems << GemfileEntry.version("#{options[:javascript]}-rails", nil,
-                                         "Use #{options[:javascript]} as the JavaScript library")
-          end
+          gems << GemfileEntry.version("#{options[:javascript]}-rails", nil,
+                                       "Use #{options[:javascript]} as the JavaScript library")
 
           unless options[:skip_turbolinks]
             gems << GemfileEntry.version("turbolinks", nil,

@@ -1001,6 +1001,9 @@ class RouteSetTest < ActiveSupport::TestCase
 
     assert_equal "http://test.host/people?baz=bar#location",
       controller.send(:index_url, :baz => "bar", :anchor => 'location')
+
+    assert_equal "http://test.host/people", controller.send(:index_url, anchor: nil)
+    assert_equal "http://test.host/people", controller.send(:index_url, anchor: false)
   end
 
   def test_named_route_url_method_with_port
@@ -1383,7 +1386,7 @@ class RouteSetTest < ActiveSupport::TestCase
     url = controller.url_for({ :controller => "connection", :only_path => true })
     assert_equal "/connection/connection", url
 
-    url = controller.url_for({ :use_route => :family_connection,
+    url = controller.url_for({ :use_route => "family_connection",
                                :controller => "connection", :only_path => true })
     assert_equal "/connection", url
   end

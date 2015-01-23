@@ -285,7 +285,9 @@ module ActiveRecord
         end
       end
 
+      #--
       # DATABASE STATEMENTS ======================================
+      #++
 
       def clear_cache!
         super
@@ -485,7 +487,7 @@ module ActiveRecord
       end
 
       def drop_table(table_name, options = {})
-        execute "DROP#{' TEMPORARY' if options[:temporary]} TABLE #{quote_table_name(table_name)}"
+        execute "DROP#{' TEMPORARY' if options[:temporary]} TABLE #{quote_table_name(table_name)}#{' CASCADE' if options[:force] == :cascade}"
       end
 
       def rename_index(table_name, old_name, new_name)
@@ -654,13 +656,14 @@ module ActiveRecord
         m.register_type %r(mediumblob)i, Type::Binary.new(limit: 2**24 - 1)
         m.register_type %r(longtext)i,   Type::Text.new(limit: 2**32 - 1)
         m.register_type %r(longblob)i,   Type::Binary.new(limit: 2**32 - 1)
-        m.register_type %r(^bigint)i,    Type::Integer.new(limit: 8)
-        m.register_type %r(^int)i,       Type::Integer.new(limit: 4)
-        m.register_type %r(^mediumint)i, Type::Integer.new(limit: 3)
-        m.register_type %r(^smallint)i,  Type::Integer.new(limit: 2)
-        m.register_type %r(^tinyint)i,   Type::Integer.new(limit: 1)
         m.register_type %r(^float)i,     Type::Float.new(limit: 24)
         m.register_type %r(^double)i,    Type::Float.new(limit: 53)
+
+        register_integer_type m, %r(^bigint)i,    limit: 8
+        register_integer_type m, %r(^int)i,       limit: 4
+        register_integer_type m, %r(^mediumint)i, limit: 3
+        register_integer_type m, %r(^smallint)i,  limit: 2
+        register_integer_type m, %r(^tinyint)i,   limit: 1
 
         m.alias_type %r(tinyint\(1\))i,  'boolean' if emulate_booleans
         m.alias_type %r(set)i,           'varchar'
@@ -671,6 +674,16 @@ module ActiveRecord
           limit = sql_type[/^enum\((.+)\)/i, 1]
             .split(',').map{|enum| enum.strip.length - 2}.max
           MysqlString.new(limit: limit)
+        end
+      end
+
+      def register_integer_type(mapping, key, options) # :nodoc:
+        mapping.register_type(key) do |sql_type|
+          if /unsigned/i =~ sql_type
+            Type::UnsignedInteger.new(options)
+          else
+            Type::Integer.new(options)
+          end
         end
       end
 
@@ -777,7 +790,7 @@ module ActiveRecord
         [add_column_sql(table_name, :created_at, :datetime, options), add_column_sql(table_name, :updated_at, :datetime, options)]
       end
 
-      def remove_timestamps_sql(table_name)
+      def remove_timestamps_sql(table_name, options = {})
         [remove_column_sql(table_name, :updated_at), remove_column_sql(table_name, :created_at)]
       end
 

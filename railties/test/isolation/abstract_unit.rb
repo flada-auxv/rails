@@ -143,6 +143,7 @@ module TestHelpers
         config.active_support.deprecation = :log
         config.active_support.test_order = :random
         config.action_controller.allow_forgery_protection = false
+        config.log_level = :info
       RUBY
     end
 
@@ -162,6 +163,8 @@ module TestHelpers
       app.secrets.secret_key_base = "3b7cd727ee24e8444053437c36cc66c4"
       app.config.session_store :cookie_store, key: "_myapp_session"
       app.config.active_support.deprecation = :log
+      app.config.active_support.test_order = :random
+      app.config.log_level = :info
 
       yield app if block_given?
       app.initialize!

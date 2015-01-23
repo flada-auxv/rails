@@ -41,12 +41,21 @@ module ApplicationTests
     def setup
       build_app
       boot_rails
-      FileUtils.rm_rf("#{app_path}/config/environments")
+      supress_default_config
     end
 
     def teardown
       teardown_app
       FileUtils.rm_rf(new_app) if File.directory?(new_app)
+    end
+
+    def supress_default_config
+      FileUtils.mv("#{app_path}/config/environments", "#{app_path}/config/__environments__")
+    end
+
+    def restore_default_config
+      FileUtils.rm_rf("#{app_path}/config/environments")
+      FileUtils.mv("#{app_path}/config/__environments__", "#{app_path}/config/environments")
     end
 
     test "Rails.env does not set the RAILS_ENV environment variable which would leak out into rake tasks" do
@@ -280,6 +289,53 @@ module ApplicationTests
       assert_equal Pathname.new(app_path).join("somewhere"), Rails.public_path
     end
 
+    test "In production mode, config.serve_static_files is off by default" do
+      restore_default_config
+
+      with_rails_env "production" do
+        require "#{app_path}/config/environment"
+        assert_not app.config.serve_static_files
+      end
+    end
+
+    test "In production mode, config.serve_static_files is enabled when RAILS_SERVE_STATIC_FILES is set" do
+      restore_default_config
+
+      with_rails_env "production" do
+        switch_env "RAILS_SERVE_STATIC_FILES", "1" do
+          require "#{app_path}/config/environment"
+          assert app.config.serve_static_files
+        end
+      end
+    end
+
+    test "In production mode, config.serve_static_files is disabled when RAILS_SERVE_STATIC_FILES is blank" do
+      restore_default_config
+
+      with_rails_env "production" do
+        switch_env "RAILS_SERVE_STATIC_FILES", " " do
+          require "#{app_path}/config/environment"
+          assert_not app.config.serve_static_files
+        end
+      end
+    end
+
+    test "config.serve_static_assets is deprecated" do
+      require "#{app_path}/config/application"
+
+      assert_deprecated(/serve_static_assets/) do
+        app.config.serve_static_assets = false
+      end
+
+      assert_not app.config.serve_static_files
+      assert_deprecated(/serve_static_assets/) { assert_not app.config.serve_static_assets }
+
+      app.config.serve_static_files = true
+
+      assert app.config.serve_static_files
+      assert_deprecated(/serve_static_assets/) { assert app.config.serve_static_assets }
+    end
+
     test "Use key_generator when secret_key_base is set" do
       make_basic_app do |app|
         app.secrets.secret_key_base = 'b3c631c314c0bbca50c1b2843150fe33'
@@ -492,6 +548,45 @@ module ApplicationTests
 
       get "/"
       assert last_response.body =~ /csrf\-param/
+    end
+
+    test "default form builder specified as a string" do
+
+      app_file 'config/initializers/form_builder.rb', <<-RUBY
+      class CustomFormBuilder < ActionView::Helpers::FormBuilder
+        def text_field(attribute, *args)
+          label(attribute) + super(attribute, *args)
+        end
+      end
+      Rails.configuration.action_view.default_form_builder = "CustomFormBuilder"
+      RUBY
+
+      app_file 'app/models/post.rb', <<-RUBY
+      class Post
+        include ActiveModel::Model
+        attr_accessor :name
+      end
+      RUBY
+
+
+      app_file 'app/controllers/posts_controller.rb', <<-RUBY
+      class PostsController < ApplicationController
+        def index
+          render inline: "<%= begin; form_for(Post.new) {|f| f.text_field(:name)}; rescue => e; e.to_s; end %>"
+        end
+      end
+      RUBY
+
+      add_to_config <<-RUBY
+        routes.prepend do
+          resources :posts
+        end
+      RUBY
+
+      require "#{app_path}/config/environment"
+
+      get "/posts"
+      assert_match(/label/, last_response.body)
     end
 
     test "default method for update can be changed" do
@@ -963,6 +1058,36 @@ module ApplicationTests
       assert_raise RuntimeError, /activerecord-session_store/ do
         make_basic_app do |app|
           app.config.session_store :active_record_store
+        end
+      end
+    end
+
+    test "Blank config.log_level is not deprecated for non-production environment" do
+      with_rails_env "development" do
+        assert_not_deprecated do
+          make_basic_app do |app|
+            app.config.log_level = nil
+          end
+        end
+      end
+    end
+
+    test "Blank config.log_level is deprecated for the production environment" do
+      with_rails_env "production" do
+        assert_deprecated(/log_level/) do
+          make_basic_app do |app|
+            app.config.log_level = nil
+          end
+        end
+      end
+    end
+
+    test "Not blank config.log_level is not deprecated for the production environment" do
+      with_rails_env "production" do
+        assert_not_deprecated do
+          make_basic_app do |app|
+            app.config.log_level = :info
+          end
         end
       end
     end

@@ -1,3 +1,22 @@
+*   Local variable in a partial is now available even if a falsy value is
+    passed to `:object` when rendering a partial.
+
+    Fixes #17373.
+
+    *Agis Anastasopoulos*
+
+*   Add support for `:enforce_utf8` option in `form_for`.
+
+    This is the same option that was added in 06388b0 to `form_tag` and allows
+    users to skip the insertion of the UTF8 enforcer tag in a form.
+
+    * claudiob *
+
+*   Fix a bug that <%= foo(){ %> and <%= foo()do %> in view templates were not regarded
+    as Ruby block calls.
+
+    * Akira Matsuda *
+
 *   Update `select_tag` to work correctly with `:include_blank` option passing a string.
 
     Fixes #16483.

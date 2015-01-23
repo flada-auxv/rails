@@ -27,8 +27,8 @@ module ActiveRecord
       attributes.initialized_keys
     end
 
-    def fetch_value(name, &block)
-      self[name].value(&block)
+    def fetch_value(name)
+      self[name].value { |n| yield n if block_given? }
     end
 
     def write_from_database(name, value)
@@ -37,6 +37,10 @@ module ActiveRecord
 
     def write_from_user(name, value)
       attributes[name] = self[name].with_value_from_user(value)
+    end
+
+    def write_cast_value(name, value)
+      attributes[name] = self[name].with_cast_value(value)
     end
 
     def freeze

@@ -132,6 +132,7 @@ module ActiveRecord
       #   Make a temporary table.
       # [<tt>:force</tt>]
       #   Set to true to drop the table before creating it.
+      #   Set to +:cascade+ to drop dependent objects as well.
       #   Defaults to false.
       # [<tt>:as</tt>]
       #   SQL to use to generate the table. When this option is used, the block is
@@ -361,8 +362,12 @@ module ActiveRecord
 
       # Drops a table from the database.
       #
-      # Although this command ignores +options+ and the block if one is given, it can be helpful
-      # to provide these in a migration's +change+ method so it can be reverted.
+      # [<tt>:force</tt>]
+      #   Set to +:cascade+ to drop dependent objects as well.
+      #   Defaults to false.
+      #
+      # Although this command ignores most +options+ and the block if one is given,
+      # it can be helpful to provide these in a migration's +change+ method so it can be reverted.
       # In that case, +options+ and the block will be used by create_table.
       def drop_table(table_name, options = {})
         execute "DROP TABLE #{quote_table_name(table_name)}"
@@ -571,6 +576,9 @@ module ActiveRecord
       #   rename_index :people, 'index_people_on_last_name', 'index_users_on_last_name'
       #
       def rename_index(table_name, old_name, new_name)
+        if new_name.length > allowed_index_name_length
+          raise ArgumentError, "Index name '#{new_name}' on table '#{table_name}' is too long; the limit is #{allowed_index_name_length} characters"
+        end
         # this is a naive implementation; some DBs may support this more efficiently (Postgres, for instance)
         old_index_def = indexes(table_name).detect { |i| i.name == old_name }
         return unless old_index_def
@@ -740,7 +748,7 @@ module ActiveRecord
         end
 
         fk_name_to_delete = options.fetch(:name) do
-          fk_to_delete = foreign_keys(from_table).detect {|fk| fk.column == options[:column] }
+          fk_to_delete = foreign_keys(from_table).detect {|fk| fk.column == options[:column].to_s }
 
           if fk_to_delete
             fk_to_delete.name
@@ -835,11 +843,14 @@ module ActiveRecord
         columns
       end
 
-      # Adds timestamps (+created_at+ and +updated_at+) columns to the named table.
+      include TimestampDefaultDeprecation
+      # Adds timestamps (+created_at+ and +updated_at+) columns to +table_name+.
+      # Additional options (like <tt>null: false</tt>) are forwarded to #add_column.
       #
-      #   add_timestamps(:suppliers)
+      #   add_timestamps(:suppliers, null: false)
       #
       def add_timestamps(table_name, options = {})
+        emit_warning_if_null_unspecified(options)
         add_column table_name, :created_at, :datetime, options
         add_column table_name, :updated_at, :datetime, options
       end
@@ -848,7 +859,7 @@ module ActiveRecord
       #
       #  remove_timestamps(:suppliers)
       #
-      def remove_timestamps(table_name)
+      def remove_timestamps(table_name, options = {})
         remove_column table_name, :updated_at
         remove_column table_name, :created_at
       end

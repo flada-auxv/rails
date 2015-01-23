@@ -63,7 +63,7 @@ module ActiveRecord
 
       # Returns a Hash of name of the reflection as the key and a AssociationReflection as the value.
       #
-      #   Account.reflections # => {balance: AggregateReflection}
+      #   Account.reflections # => {"balance" => AggregateReflection}
       #
       # @api public
       def reflections
@@ -277,7 +277,7 @@ module ActiveRecord
       def initialize(name, scope, options, active_record)
         super
         @automatic_inverse_of = nil
-        @type         = options[:as] && "#{options[:as]}_type"
+        @type         = options[:as] && (options[:foreign_type] || "#{options[:as]}_type")
         @foreign_type = options[:foreign_type] || "#{name}_type"
         @constructable = calculate_constructable(macro, options)
         @association_scope_cache = {}
@@ -287,7 +287,7 @@ module ActiveRecord
       def association_scope_cache(conn, owner)
         key = conn.prepared_statements
         if polymorphic?
-          key = [key, owner.read_attribute(@foreign_type)]
+          key = [key, owner._read_attribute(@foreign_type)]
         end
         @association_scope_cache[key] ||= @scope_lock.synchronize {
           @association_scope_cache[key] ||= yield

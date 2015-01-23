@@ -19,7 +19,7 @@ module ActiveRecord
     end
   end
 
-  class LazyAttributeHash
+  class LazyAttributeHash # :nodoc:
     delegate :select, :transform_values, to: :materialize
 
     def initialize(types, values, additional_types)
@@ -35,11 +35,7 @@ module ActiveRecord
     end
 
     def [](key)
-      if delegate_hash.key?(key)
-        delegate_hash[key]
-      else
-        assign_default_value(key)
-      end
+      delegate_hash[key] || assign_default_value(key)
     end
 
     def []=(key, value)
@@ -66,9 +62,11 @@ module ActiveRecord
 
     def assign_default_value(name)
       type = additional_types.fetch(name, types[name])
+      value_present = true
+      value = values.fetch(name) { value_present = false }
 
-      if values.key?(name)
-        delegate_hash[name] = Attribute.from_database(name, values[name], type)
+      if value_present
+        delegate_hash[name] = Attribute.from_database(name, value, type)
       elsif types.key?(name)
         delegate_hash[name] = Attribute.uninitialized(name, type)
       end
@@ -78,7 +76,9 @@ module ActiveRecord
       unless @materialized
         values.each_key { |key| self[key] }
         types.each_key { |key| self[key] }
-        @materialized = true
+        unless frozen?
+          @materialized = true
+        end
       end
       delegate_hash
     end
